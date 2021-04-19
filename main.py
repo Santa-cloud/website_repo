@@ -34,6 +34,6 @@ def put_method():
 def options_method():
     return {"method": "OPTIONS"}
 
-@app.post("/method")
+@app.post("/method", status_code=201)
 def post_method():
     return {"method": "POST"}
