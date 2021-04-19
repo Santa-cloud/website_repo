@@ -1,8 +1,15 @@
 from fastapi import FastAPI
 import requests
-
+from typing import Optional
+from pydantic import BaseModel
 app = FastAPI()
 
+
+
+class Item(BaseModel):
+    name: str
+    description: Optional[str] = None
+   
 
 @app.get("/")
 def root():
@@ -10,20 +17,24 @@ def root():
 
     
 @app.get("/method")
-def method():
-    return {"message": "GET"}
+def get_method():
+    return {"method": "GET"}
     
    
 @app.delete("/method")
-def method():
-    return {"message": "DELETE"}
+def delete_method():
+    return {"method": "DELETE"}
     
     
 @app.put("/method")
-def method():
-    return {"message": "PUT"}
+def put_method():
+    return {"method": "PUT"}
     
     
 @app.options("/method")
-def method():
-    return {"message": "OPTIONS"}
+def options_method():
+    return {"method": "OPTIONS"}
+
+@app.post("/method")
+async def post_method(item: Item):
+    return {"method": "POST"}
