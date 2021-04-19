@@ -7,7 +7,7 @@ app = FastAPI()
 
 
 class Item(BaseModel):
-    name: Optional[str] = None
+    name: str
    
 
 @app.get("/")
@@ -34,6 +34,6 @@ def put_method():
 def options_method():
     return {"method": "OPTIONS"}
 
-@app.post("/method/items/")
-async def post_method(item: Item):
+@app.post("/method")
+def post_method():
     return {"method": "POST"}
