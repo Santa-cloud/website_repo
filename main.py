@@ -34,6 +34,6 @@ def put_method():
 def options_method():
     return {"method": "OPTIONS"}
 
-@app.post("/method")
+@app.post("/method/items/")
 async def post_method(item: Item):
     return {"method": "POST"}
