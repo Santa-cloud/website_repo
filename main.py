@@ -7,8 +7,7 @@ app = FastAPI()
 
 
 class Item(BaseModel):
-    name: str
-    description: Optional[str] = None
+    name: Optional[str] = None
    
 
 @app.get("/")
