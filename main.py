@@ -1,3 +1,4 @@
+"""
 from datetime import date, timedelta
 import encodings
 from hashlib import sha512
@@ -6,9 +7,9 @@ import string
 
 from fastapi import FastAPI, Request, Response, status
 from pydantic import BaseModel
-
-
 """
+
+
 from fastapi import FastAPI, Response, status
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
@@ -17,7 +18,7 @@ import requests
 from typing import Optional
 from pydantic import BaseModel
 import hashlib
-"""
+
 app = FastAPI()
 app.id = 0
 app.cache = []
