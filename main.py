@@ -7,8 +7,9 @@ from typing import Optional
 from pydantic import BaseModel
 import hashlib
 app = FastAPI()
-
-app.counter = 1
+app.id = 0
+app.cache = []
+#app.counter = 1
 
     
 """
