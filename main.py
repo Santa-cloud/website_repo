@@ -66,7 +66,7 @@ def post_method():
     
 @app.get("/auth")
 def auth(response: Response, password: Optional[str] = None, password_hash: Optional[str] = None):
-    if (password == "" and password_hash == ""):
+    if (password == "" or password_hash == ""):
         response.status_code = 401
         return {"auth": "wrong"}
     elif (password != None or password_hash != None):
