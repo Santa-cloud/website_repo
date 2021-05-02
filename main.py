@@ -1,4 +1,7 @@
 from fastapi import FastAPI, Response, status, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+#from fastapi.staticfiles import StaticFiles
 from datetime import date, timedelta
 from typing import Optional
 from pydantic import BaseModel
@@ -8,6 +11,8 @@ import hashlib
 app = FastAPI()
 app.id = 0
 app.cache = []
+#app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 
 @app.get("/")
@@ -82,3 +87,12 @@ def patient_view(patient_id: int, response: Response):
             return patient_json
     response.status_code = status.HTTP_404_NOT_FOUND
     return response
+
+
+# L3 Ex1
+@app.get("/hello", response_class=HTMLResponse)
+def hello(request: Request):
+    return templates.TemplateResponse(
+        "index.html.j2",
+        {"request": request, "todays_date": date.today()},
+    )
