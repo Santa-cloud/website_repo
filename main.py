@@ -11,6 +11,8 @@ import hashlib
 app = FastAPI()
 app.id = 0
 app.cache = []
+app.access_tokens = []
+app.secret_key = 'kashduhashdbahsdgahskdgasdgasdgsdgkjasfnuaevbczknckzygschkzsgckjhwz'
 #app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
@@ -96,3 +98,42 @@ def hello(request: Request):
         "index.html.j2",
         {"request": request, "todays_date": date.today()},
     )
+
+
+@app.post("/login_session")
+def login(user: str, password: str, response: Response):
+    session_token = hashlib.sha256(f"{user}:{password}{app.secret_key}".encode()).hexdigest()
+    app.access_tokens.append(session_token)
+    response.set_cookie(key="session_token", value=session_token)
+    return {"message": "Welcome"}
+
+
+@app.post("/login_token")
+def login(user: str, password: str, response: Response):
+    session_token = hashlib.sha256(f"{user}:{password}{app.secret_key}".encode()).hexdigest()
+    app.access_tokens.append(session_token)
+    response.set_cookie(key="session_token", value=session_token)
+    return {"token": {session_token}}
+
+
+
+'''
+@app.post("/login_session")
+def login(user: str, password: str, response: Response):
+    session_token = hashlib.sha256(f"{user}{password}{app.secret_key}".encode()).hexdigest()
+    app.access_tokens.append(session_token)
+    response.set_cookie(key="session_token", value=session_token)
+    return {"message": "Welcome"}
+
+
+@app.get("/data/")
+def secured_data(*, response: Response, session_token: str = Cookie(None)):
+    print(session_token)
+    print(app.access_tokens)
+    print(session_token in app.access_tokens)
+    if session_token not in app.access_tokens:
+        raise HTTPException(status_code=403, detail="Unathorised")
+    else:
+        return {"message": "Secure Content"}
+
+'''
