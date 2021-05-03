@@ -106,8 +106,8 @@ def hello(request: Request):
 def login(response: Response, user: Optional[str] = None, password: Optional[str] = None):
     session_token = hashlib.sha256(f"{user}:{password}{app.secret_key}".encode()).hexdigest()
     #app.access_tokens.append(session_token)
+    response.set_cookie(key="session_token", value=session_token)
     if session_token in app.access_tokens:
-        response.set_cookie(key="session_token", value=session_token)
         response.status_code = status.HTTP_201_CREATED
         return {"message": "Welcome"}
     else:
