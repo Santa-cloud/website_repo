@@ -103,7 +103,7 @@ def hello(request: Request):
 
 
 @app.post("/login_session")
-def login(user: str, password: str, response: Response):
+def login(response: Response, user: Optional[str] = None, password: Optional[str] = None):
     session_token = hashlib.sha256(f"{user}:{password}{app.secret_key}".encode()).hexdigest()
     #app.access_tokens.append(session_token)
     if session_token in app.access_tokens:
