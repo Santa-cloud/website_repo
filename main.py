@@ -108,6 +108,7 @@ def login(user: str, password: str, response: Response):
     #app.access_tokens.append(session_token)
     if session_token in app.access_tokens:
         response.set_cookie(key="session_token", value=session_token)
+        response.status_code = status.HTTP_201_CREATED
         return {"message": "Welcome"}
     else:
         response.status_code = status.HTTP_401_UNAUTHORIZED
@@ -118,6 +119,7 @@ def login(user: str, password: str, response: Response):
 def login(user: str, password: str, response: Response):
     session_token = hashlib.sha256(f"{user}:{password}{app.secret_key}".encode()).hexdigest()
     if session_token in app.access_tokens:
+        response.status_code = status.HTTP_201_CREATED
         return {"token": session_token}
     else:
         response.status_code = status.HTTP_401_UNAUTHORIZED
