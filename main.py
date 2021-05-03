@@ -10,9 +10,11 @@ import hashlib
 
 app = FastAPI()
 app.id = 0
+app.secret_key = 'kashduhashdbahsdgahskdgasdgasdgsdgkjasfnuaevbczknckzygschkzsgckjhwz'
 app.cache = []
 app.access_tokens = []
-app.secret_key = 'kashduhashdbahsdgahskdgasdgasdgsdgkjasfnuaevbczknckzygschkzsgckjhwz'
+app.access_tokens.append(hashlib.sha256(f"4dm1n:NotSoSecurePa$${app.secret_key}".encode()).hexdigest())
+
 #app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
@@ -103,17 +105,23 @@ def hello(request: Request):
 @app.post("/login_session")
 def login(user: str, password: str, response: Response):
     session_token = hashlib.sha256(f"{user}:{password}{app.secret_key}".encode()).hexdigest()
-    app.access_tokens.append(session_token)
-    response.set_cookie(key="session_token", value=session_token)
-    return {"message": "Welcome"}
+    #app.access_tokens.append(session_token)
+    if session_token in app.access_tokens:
+        response.set_cookie(key="session_token", value=session_token)
+        return {"message": "Welcome"}
+    else:
+        response.status_code = status.HTTP_401_UNAUTHORIZED
+        return {"login": "unauthorized"}
 
 
 @app.post("/login_token")
 def login(user: str, password: str, response: Response):
     session_token = hashlib.sha256(f"{user}:{password}{app.secret_key}".encode()).hexdigest()
-    app.access_tokens.append(session_token)
-    response.set_cookie(key="session_token", value=session_token)
-    return {"token": {session_token}}
+    if session_token in app.access_tokens:
+        return {"token": session_token}
+    else:
+        response.status_code = status.HTTP_401_UNAUTHORIZED
+        return {"login": "unauthorized"}
 
 
 
