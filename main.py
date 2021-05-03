@@ -116,7 +116,7 @@ def login(response: Response, user: Optional[str] = None, password: Optional[str
 
 
 @app.post("/login_token")
-def login(user: str, password: str, response: Response):
+def login(response: Response, user: Optional[str] = None, password: Optional[str] = None):
     session_token = hashlib.sha256(f"{user}:{password}{app.secret_key}".encode()).hexdigest()
     if session_token in app.access_tokens:
         response.status_code = status.HTTP_201_CREATED
