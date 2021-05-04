@@ -2,7 +2,7 @@ from fastapi import FastAPI, Response, status, Request, Depends, HTTPException
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
-#from fastapi.staticfiles import StaticFiles
+# from fastapi.staticfiles import StaticFiles
 from datetime import date, timedelta
 from typing import Optional
 from pydantic import BaseModel
@@ -20,17 +20,15 @@ app.access_tokens = []
 
 security = HTTPBasic()
 
-
-#app.mount("/static", StaticFiles(directory="static"), name="static")
+# app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
-
 
 
 @app.get("/")
 def root():
     return {"message": "Hello world!"}
 
-    
+
 @app.api_route('/method', methods=["GET", "DELETE", "PUT", "OPTIONS"])
 def method_view(request: Request):
     return {"method": request.method}
@@ -51,9 +49,6 @@ def auth(response: Response, password: Optional[str] = None, password_hash: Opti
         if h_password.hexdigest() == password_hash:
             response.status_code = 204
             return {"auth": "ok"}
-        else:
-            response.status_code = 401
-            return {"auth": "wrong"}           
     else:
         response.status_code = 401
         return {"auth": "wrong"}
@@ -109,44 +104,7 @@ def hello(request: Request):
     )
 
 
-def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
-    correct_username = secrets.compare_digest(credentials.username, '4dm1n')
-    correct_password = secrets.compare_digest(credentials.password, 'NotSoSecurePa$$')
-    if not (correct_username and correct_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Not Authorized')
-    return credentials.username, credentials.password
-
-
-def random_token():
-    token = ''.join(random.choices(string.ascii_uppercase + string.digits, k=10))
-    return hashlib.sha256(token.encode()).hexdigest()
-
-
-@app.post('/login_session', status_code=status.HTTP_201_CREATED, dependencies=[Depends(authenticate)])
-def login_session_view(response: Response):
-    session_token = random_token()
-    if len(app.session_token) == 0:
-        app.session_token.append(session_token)
-    else:
-        app.session_token[0] = session_token
-    response.set_cookie(key='session_token', value=session_token)
-    return {'message': 'You are logged'}
-
-
-@app.post('/login_token', status_code=status.HTTP_201_CREATED, dependencies=[Depends(authenticate)])
-def login_session_view():
-    json_token = random_token()
-    if len(app.json_token) == 0:
-        app.json_token.append(json_token)
-    else:
-        app.json_token[0] = json_token
-    return {'message': 'You are logged', "token": json_token}
-
-
-
-
-
-"""
+# L3 Ex2
 @app.post("/login_session")
 def login(response: Response, user: Optional[str] = None, password: Optional[str] = None):
     session_token = hashlib.sha256(f"{user}:{password}{app.secret_key}".encode()).hexdigest()
@@ -172,7 +130,6 @@ def login(response: Response, user: Optional[str] = None, password: Optional[str
         response.status_code = status.HTTP_401_UNAUTHORIZED
         return {"login": "not authorized"}
 
-"""
 
 '''
 @app.post("/login_session")
