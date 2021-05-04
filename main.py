@@ -16,7 +16,8 @@ app = FastAPI()
 app.id = 0
 app.secret_key = 'kashduhashdbahsdgahskdgasdgasdgsdgkjasfnuaevbczknckzygschkzsgckjhwz'
 app.cache = []
-app.access_tokens = []
+app.session_tokens = []
+app.json_token = []
 
 security = HTTPBasic()
 
@@ -38,7 +39,7 @@ def method_view(request: Request):
 def post_method():
     return {"method": "POST"}
 
-
+"""
 @app.get("/auth")
 def auth(response: Response, password: Optional[str] = None, password_hash: Optional[str] = None):
     if password == "" or password_hash == "":
@@ -52,7 +53,7 @@ def auth(response: Response, password: Optional[str] = None, password_hash: Opti
     else:
         response.status_code = 401
         return {"auth": "wrong"}
-
+"""
 
 # Ex4
 
@@ -105,30 +106,37 @@ def hello(request: Request):
 
 
 # L3 Ex2
-@app.post("/login_session")
-def login(response: Response, user: Optional[str] = None, password: Optional[str] = None):
-    session_token = hashlib.sha256(f"{user}:{password}{app.secret_key}".encode()).hexdigest()
-    if app.access_tokens == 0:
-        app.access_tokens.append(session_token)
-
-    response.set_cookie(key="session_token", value=session_token)
-    if session_token in app.access_tokens:
-        response.status_code = status.HTTP_201_CREATED
-        return {"message": "Welcome"}
-    else:
-        response.status_code = status.HTTP_401_UNAUTHORIZED
-        return {"login": "not authorized"}
 
 
-@app.post("/login_token")
-def login(response: Response, user: Optional[str] = None, password: Optional[str] = None):
-    session_token = hashlib.sha256(f"{user}:{password}{app.secret_key}".encode()).hexdigest()
-    if session_token in app.access_tokens:
-        response.status_code = status.HTTP_201_CREATED
-        return {"token": session_token}
-    else:
-        response.status_code = status.HTTP_401_UNAUTHORIZED
-        return {"login": "not authorized"}
+def authorization(credentials: HTTPBasicCredentials = Depends(security)):
+    correct_username = secrets.compare_digest(credentials.username, "4dm1n")
+    correct_password = secrets.compare_digest(credentials.password, "NotSoSecurePa$$")
+    if not (correct_username and correct_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Basic"},
+        )
+    return credentials.username
+
+
+@app.post("/login_session", status_code=status.HTTP_201_CREATED, dependencies=[Depends(authorization)])
+def login_session(response: Response):
+    session_token = "random string"
+    app.session_tokens.append(session_token)
+    if len(app.session_tokens) > 1:
+        del app.session_tokens[0]
+    response.set_cookie(key='session_token', value=session_token)
+    return {'message': 'You are logged'}
+
+
+@app.post("/login_token", status_code=status.HTTP_201_CREATED, dependencies=[Depends(authorization)])
+def login_json():
+    json_token = "random string"
+    app.json_tokens.append(json_token)
+    if len(app.json_tokens) > 1:
+        del app.json_tokens[0]
+    return {'message': 'You are logged', "token": json_token}
 
 
 '''
