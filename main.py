@@ -1,161 +1,159 @@
-from fastapi import FastAPI, Response, status, Request, Depends, HTTPException
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from fastapi.security import HTTPBasic, HTTPBasicCredentials
-# from fastapi.staticfiles import StaticFiles
-from datetime import date, timedelta
-from typing import Optional
-from pydantic import BaseModel
-
-import hashlib
-import random
-import string
 import secrets
+import uuid
+from contextlib import contextmanager
+from datetime import datetime
+from functools import wraps
+from hashlib import sha512
+from typing import List, Optional
+
+from fastapi import (Cookie, Depends, FastAPI, HTTPException, Request,
+                     Response, status)
+from fastapi.responses import (HTMLResponse, JSONResponse, PlainTextResponse,
+                               RedirectResponse)
+from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
 app = FastAPI()
-app.id = 0
-app.secret_key = 'kashduhashdbahsdgahskdgasdgasdgsdgkjasfnuaevbczknckzygschkzsgckjhwz'
-app.cache = []
-app.session_tokens = []
-app.json_token = []
-
-security = HTTPBasic()
-
-# app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+app.username = "4dm1n"
+app.password = "NotSoSecurePa$$"
+app.secret_key = "T00Sh0rtAppS3cretK3y"
+app.api_token: List[str] = []
+app.session_token: List[str] = []
+app.token_limits = 3
 
 
-@app.get("/")
-def root():
-    return {"message": "Hello world!"}
+def add_token(token: str, cache_ns: str):
+    tokens = getattr(app, cache_ns)
+    if len(tokens) >= app.token_limits:
+        tokens.pop(0)
+    tokens.append(token)
+    setattr(app, cache_ns, tokens)
 
 
-@app.api_route('/method', methods=["GET", "DELETE", "PUT", "OPTIONS"])
-def method_view(request: Request):
-    return {"method": request.method}
+def remove_token(token: str, cache_ns: str):
+    tokens = getattr(app, cache_ns)
+    try:
+        index = tokens.index(token)
+        tokens.pop(index)
+        setattr(app, cache_ns, tokens)
+    except ValueError:
+        return None
 
 
-@app.post("/method", status_code=201)
-def post_method():
-    return {"method": "POST"}
-
-"""
-@app.get("/auth")
-def auth(response: Response, password: Optional[str] = None, password_hash: Optional[str] = None):
-    if password == "" or password_hash == "":
-        response.status_code = 401
-        return {"auth": "wrong"}
-    elif password is not None or password_hash is not None:
-        h_password = hashlib.sha512(password.encode("unicode-escape"))
-        if h_password.hexdigest() == password_hash:
-            response.status_code = 204
-            return {"auth": "ok"}
-    else:
-        response.status_code = 401
-        return {"auth": "wrong"}
-"""
-
-# Ex4
+def generate_token(request: Request):
+    return sha512(
+        bytes(
+            f"{uuid.uuid4().hex}{app.secret_key}{request.headers['authorization']}",
+            "utf-8",
+        )
+    ).hexdigest()
 
 
-class Register(BaseModel):
-    name: str
-    surname: str
+def auth_basic_auth(credentials: HTTPBasicCredentials = Depends(HTTPBasic())):
+    correct_user = secrets.compare_digest(credentials.username, app.username)
+    correct_pass = secrets.compare_digest(credentials.password, app.password)
+    if not (correct_user and correct_pass):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect credentials"
+        )
+
+    return True
 
 
-def count_letters(word):
-    return len([i for i in word if i.isalpha()])
+def auth_session(session_token: str = Cookie(None)):
+    if app.session_token and session_token in app.session_token:
+        return session_token
 
-
-@app.post('/register', status_code=201)
-def register_view(register: Register):
-    app.id += 1
-    today = date.today()
-    days = count_letters(register.name) + count_letters(register.surname)
-    output_json = {
-        'id': app.id,
-        'name': register.name,
-        'surname': register.surname,
-        'register_date': str(today),
-        'vaccination_date': str(today + timedelta(days=days))
-    }
-    app.cache.append(output_json)
-    return output_json
-
-
-# Ex5
-@app.get('/patient/{patient_id}')
-def patient_view(patient_id: int, response: Response):
-    if patient_id < 1:
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return response
-    for patient_json in app.cache:
-        if patient_json['id'] == patient_id:
-            return patient_json
-    response.status_code = status.HTTP_404_NOT_FOUND
-    return response
-
-
-# L3 Ex1
-@app.get("/hello", response_class=HTMLResponse)
-def hello(request: Request):
-    return templates.TemplateResponse(
-        "index.html.j2",
-        {"request": request, "todays_date": date.today()},
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect credentials"
     )
 
 
-# L3 Ex2
+def auth_token(token: Optional[str] = None):
+    if app.api_token and token in app.api_token:
+        return token
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect credentials"
+    )
 
 
-def authorization(credentials: HTTPBasicCredentials = Depends(security)):
-    correct_username = secrets.compare_digest(credentials.username, "4dm1n")
-    correct_password = secrets.compare_digest(credentials.password, "NotSoSecurePa$$")
-    if not (correct_username and correct_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
-            headers={"WWW-Authenticate": "Basic"},
-        )
-    return credentials.username
+def response_decorator(func):
+    def message_response(format: str, func_value: str):
+        if format == "json":
+            return JSONResponse(content={"message": func_value})
+        if format == "html":
+            return HTMLResponse(content=f"<h1>{func_value}</h1>")
+
+        return PlainTextResponse(content=func_value)
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        func_value = func(*args, **kwargs)
+        return message_response(kwargs.get("format"), func_value)
+
+    return wrapper
 
 
-@app.post("/login_session", status_code=status.HTTP_201_CREATED, dependencies=[Depends(authorization)])
-def login_session(response: Response):
-    session_token = "random string"
-    app.session_tokens.append(session_token)
-    if len(app.session_tokens) > 1:
-        del app.session_tokens[0]
-    response.set_cookie(key='session_token', value=session_token)
-    return {'message': 'You are logged'}
+@app.get("/hello", response_class=HTMLResponse)
+def read_root_hello():
+    return f"""
+    <html>
+        <head>
+            <title></title>
+        </head>
+        <body>
+            <h1>Hello! Today date is { datetime.now().date() }</h1>
+        </body>
+    </html>
+    """
 
 
-@app.post("/login_token", status_code=status.HTTP_201_CREATED, dependencies=[Depends(authorization)])
-def login_json():
-    json_token = "random string"
-    app.json_tokens.append(json_token)
-    if len(app.json_tokens) > 1:
-        del app.json_tokens[0]
-    return {'message': 'You are logged', "token": json_token}
+@app.post("/login_session", status_code=201, response_class=HTMLResponse)
+def create_session(
+    request: Request, response: Response, auth: bool = Depends(auth_basic_auth)
+):
+    token = generate_token(request)
+    add_token(token, "session_token")
+    response.set_cookie(key="session_token", value=token)
+    return ""
 
 
-'''
-@app.post("/login_session")
-def login(user: str, password: str, response: Response):
-    session_token = hashlib.sha256(f"{user}{password}{app.secret_key}".encode()).hexdigest()
-    app.access_tokens.append(session_token)
-    response.set_cookie(key="session_token", value=session_token)
-    return {"message": "Welcome"}
+@app.post("/login_token", status_code=201)
+def create_token(request: Request, auth: bool = Depends(auth_basic_auth)):
+    token = generate_token(request)
+    add_token(token, "api_token")
+    return {"token": token}
 
 
-@app.get("/data/")
-def secured_data(*, response: Response, session_token: str = Cookie(None)):
-    print(session_token)
-    print(app.access_tokens)
-    print(session_token in app.access_tokens)
-    if session_token not in app.access_tokens:
-        raise HTTPException(status_code=403, detail="Unathorised")
-    else:
-        return {"message": "Secure Content"}
+@app.get("/welcome_session")
+@response_decorator
+def show_welcome_session(received_token: str = Depends(auth_session), format: str = ""):
+    return "Welcome!"
 
-'''
+
+@app.get("/welcome_token")
+@response_decorator
+def show_welcome_token(received_token: str = Depends(auth_token), format: str = ""):
+    return "Welcome!"
+
+
+@app.get("/logged_out")
+@response_decorator
+def logged_out(format: str = ""):
+    return "Logged out!"
+
+
+@app.delete("/logout_session")
+def logout_session(received_token: str = Depends(auth_session), format: str = ""):
+    remove_token(received_token, "session_token")
+    return RedirectResponse(
+        url=f"/logged_out?format={format}", status_code=status.HTTP_302_FOUND
+    )
+
+
+@app.delete("/logout_token")
+def logout_token(received_token: str = Depends(auth_token), format: str = ""):
+    remove_token(received_token, "api_token")
+    return RedirectResponse(
+        url=f"/logged_out?format={format}", status_code=status.HTTP_302_FOUND
+    )
