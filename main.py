@@ -34,3 +34,14 @@ async def get_categories():
 
     data["categories"] = [{"id": x['CategoryID'], "name": x["CategoryName"]} for x in data]
     return data
+
+
+@app.get("/customers")
+async def get_categories():
+    app.db_connection.row_factory = sqlite3.Row
+    data = app.db_connection.execute(
+        "SELECT CustomerID, CompanyName FROM Customers ORDER BY CustomerID"
+    ).fetchall()
+
+    data["customers"] = [{"id": x['CustomerID'], "name": x["CustomerName"]} for x in data]
+    return data
