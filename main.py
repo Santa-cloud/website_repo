@@ -1,5 +1,5 @@
 import sqlite3
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 
 
 app = FastAPI()
@@ -37,9 +37,11 @@ async def get_categories():
             [{"id": x['CategoryID'], "name": x["CategoryName"]} for x in data]
     }
 
-"""
+
 @app.get("/customers")
 async def get_categories():
+    return {"detail": "hello"}
+"""
     app.db_connection.row_factory = sqlite3.Row
     data = app.db_connection.execute(
         "SELECT CustomerID, CompanyName FROM Customers ORDER BY CustomerID"
