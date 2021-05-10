@@ -40,7 +40,7 @@ async def get_categories():
 
 @app.get("/customers")
 async def get_categories():
-    return {"detail": "hello"}
+    return {"id": 1}
 """
     app.db_connection.row_factory = sqlite3.Row
     data = app.db_connection.execute(
