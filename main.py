@@ -39,14 +39,15 @@ async def get_categories():
 
 
 @app.get("/customers")
-async def get_categories():
-    return {"id": 1}
-"""
-    app.db_connection.row_factory = sqlite3.Row
-    data = app.db_connection.execute(
-        "SELECT CustomerID, CompanyName FROM Customers ORDER BY CustomerID"
+async def get_customers():
+    cursor = app.db_connection.cursor()
+    cursor.row_factory = sqlite3.Row
+    customers = cursor.execute(
+        "SELECT CustomerID id, COALESCE(CompanyName, '') name, "
+        "COALESCE(Address , '') || ' ' || COALESCE(PostalCode, '') || ' ' || "
+        "COALESCE(City , '') || ' ' || COALESCE(Country , '') full_address "
+        "FROM Customers"
     ).fetchall()
-    customers = [{"id": x['CustomerID'], "name": x["CustomerName"]} for x in data]
-    #data["customers"] = customers
-    return customers
-"""
+    return {
+        "customers": customers
+        }
