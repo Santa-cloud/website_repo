@@ -87,3 +87,20 @@ async def get_employees(
         {"limit": limit, "offset": offset}
     ).fetchall()
     return {"employees": employees}
+
+
+@app.get("/products_extended")
+async def get_products_extended():
+    cursor = app.db_connection.cursor()
+    cursor.row_factory = sqlite3.Row
+    products = cursor.execute(
+        "SELECT Products.ProductID id, Products.ProductName name, "
+        "Categories.CategoryName category, Suppliers.CompanyName supplier "
+        "FROM Products "
+        "JOIN Categories ON Products.CategoryID = Categories.CategoryID "
+        "JOIN Suppliers ON Products.SupplierID =  Suppliers.SupplierID "
+        "ORDER BY ProductID"
+    ).fetchall()
+    return {
+        "products_extended": products
+    }
