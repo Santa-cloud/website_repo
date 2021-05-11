@@ -1,6 +1,7 @@
 import sqlite3
 from fastapi import FastAPI, status, HTTPException
 from typing import Optional
+from pydantic import BaseModel
 
 
 app = FastAPI()
@@ -130,3 +131,46 @@ async def product_orders_view(product_id: int):
                """
     orders = cursor.execute(query, (product_id,)).fetchall()
     return {"orders": orders}
+
+
+class CategoryName(BaseModel):
+    name: str
+
+
+@app.post("/categories", status_code=status.HTTP_201_CREATED)
+async def create_category_view(new_category: CategoryName):
+    cursor = app.db_connection.execute("INSERT INTO Categories (CategoryName) VALUES (?)", (new_category.name,))
+    app.db_connection.commit()
+    cat_id = cursor.lastrowid
+    app.db_connection.row_factory = sqlite3.Row
+    categories = app.db_connection.execute(
+        """SELECT CategoryID id, CategoryName name FROM Categories WHERE CategoryID = ?""",
+        (cat_id,)).fetchone()
+    return categories
+
+
+@app.put("/categories/{cat_id}", status_code=status.HTTP_200_OK)
+async def update_category_view(update_category: CategoryName, cat_id: int):
+    app.db_connection.execute(
+        "UPDATE Categories SET CategoryName = ? WHERE CategoryID = ?", (
+            update_category.name, cat_id,)
+    )
+    app.db_connection.commit()
+    app.db_connection.row_factory = sqlite3.Row
+    data = app.db_connection.execute(
+        """SELECT CategoryID id, CategoryName name FROM Categories WHERE CategoryID = ?""",
+        (cat_id,)).fetchone()
+    if data is None:
+        raise HTTPException(status_code=404)
+    return data
+
+
+@app.delete("/categories/{cat_id}", status_code=status.HTTP_200_OK)
+async def delete_category_view(cat_id: int):
+    cursor = app.db_connection.execute(
+        "DELETE FROM Categories WHERE CategoryID = ?", (cat_id,)
+    )
+    app.db_connection.commit()
+    if cursor.rowcount:
+        return {"deleted": 1}
+    raise HTTPException(status_code=404)
