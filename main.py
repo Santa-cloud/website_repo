@@ -99,8 +99,34 @@ async def get_products_extended():
         "FROM Products "
         "JOIN Categories ON Products.CategoryID = Categories.CategoryID "
         "JOIN Suppliers ON Products.SupplierID =  Suppliers.SupplierID "
-        "ORDER BY ProductID"
     ).fetchall()
     return {
         "products_extended": products
     }
+
+
+@app.get("/products/{product_id}/orders")
+async def product_orders_view(product_id: int):
+    cursor = app.db_connection.cursor()
+    cursor.row_factory = sqlite3.Row
+
+    # Check if product exists before making Query about orders.
+    product = cursor.execute("SELECT ProductID FROM Products WHERE ProductID = ?",
+                             (product_id,)).fetchone()
+    if product is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    query = """
+               SELECT 
+                    od.OrderID AS id,
+                    c.CompanyName AS customer,
+                    od.Quantity AS quantity,
+                    ROUND((od.UnitPrice * od.Quantity) - (od.Discount * (od.UnitPrice * od.Quantity)),2) AS total_price
+                FROM 
+                    'Order Details' od
+                        JOIN Orders o ON od.OrderID = o.OrderID
+                            JOIN Customers c ON o.CustomerID = c.CustomerID
+                WHERE ProductID = ?
+               """
+    orders = cursor.execute(query, (product_id,)).fetchall()
+    return {"orders": orders}
